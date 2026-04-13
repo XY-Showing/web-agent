@@ -78,3 +78,59 @@ Per the plan, B-type errors are recorded here but not fixed. The missing files a
 2. Files missing from the SourceReference snapshot itself
 
 Phase 1 is complete: all 1934 files from SourceReference/src have been copied to WebAgent/src with zero omissions. The compilation errors pre-exist in the source snapshot and do not represent regressions introduced during migration.
+
+---
+
+## Phase 2 Classification — 2026-04-13
+
+### Summary
+
+- **Total files:** 1934
+- **Core directories:** 23
+- **Extension directories:** 11
+- **Mixed directories:** 2 (utils/, hooks/)
+- **Root files classified:** 18 (13 core, 5 extension)
+- **Violations found:** 539 (classified-core modules importing from extension)
+- **Unique violating files:** 250
+- **Dep graph completeness:** 1932/1934 files resolved, 189 warnings (missing private/internal modules)
+- **Circular dependencies:** 1988 chains detected
+
+### Dep Graph Stats (madge 8.0.0)
+
+Most-imported modules (highest fan-in):
+- `screens/REPL.tsx` — 232 dependents
+- `main.tsx` — 181 dependents
+- `cli/print.ts` — 133 dependents
+- `components/PromptInput/PromptInput.tsx` — 116 dependents
+- `commands.ts` — 105 dependents
+
+### Key Findings from Violation Analysis
+
+**539 violations** where directories classified as `core` import from `extension` directories.
+
+Breakdown by source directory:
+- `commands/`: 196 violations — many commands contain `.tsx` UI components alongside logic
+- `tools/`: 120 violations — most from `UI.tsx` co-located files (e.g. `tools/BashTool/UI.tsx`)
+- `utils/`: 91 violations — 73 files in utils/ import from extension dirs
+- `hooks/`: 89 violations — 49 files in hooks/ import from extension dirs
+
+**Implication:** `commands/` and `tools/` directories should be reclassified as `mixed` rather than `core` in a future revision. Many subdirectories follow a pattern of `CoreLogic.ts` + `UI.tsx` pairs.
+
+### Mixed Directory Analysis
+
+**utils/ (569 files):**
+- 496 files (87%) are pure core — no extension imports
+- 73 files (13%) import from extension directories and should be split out in Phase 3
+
+**hooks/ (104 files):**
+- 55 files (53%) are pure core
+- 49 files (47%) import from extension directories
+- The `hooks/` directory is heavily UI-coupled overall
+
+### Next Steps (Phase 3, optional)
+
+1. **Reclassify** `commands/` and `tools/` from `core` to `mixed` in module-classification.json
+2. **Physical split**: Move confirmed extension files to `WebAgent/extensions/`
+3. **Process mixed directories**: Per-file split for `utils/`, `hooks/`, `commands/`, `tools/`
+4. **Handle violations**: Decide whether to adjust classification or refactor imports for core files like `QueryEngine.ts` and `Tool.ts` that import from extension
+5. **Circular dependency cleanup**: 1988 circular chains require investigation before Phase 3 splitting
