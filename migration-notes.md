@@ -134,3 +134,24 @@ Breakdown by source directory:
 3. **Process mixed directories**: Per-file split for `utils/`, `hooks/`, `commands/`, `tools/`
 4. **Handle violations**: Decide whether to adjust classification or refactor imports for core files like `QueryEngine.ts` and `Tool.ts` that import from extension
 5. **Circular dependency cleanup**: 1988 circular chains require investigation before Phase 3 splitting
+
+---
+
+## OpenAI Provider — 2026-04-14
+
+Added `src/services/api/openai-fetch-adapter.ts` — generic OpenAI Chat Completions adapter.
+
+Activate with:
+```
+CLAUDE_CODE_USE_OPENAI=1
+OPENAI_API_KEY=<your-key>
+OPENAI_BASE_URL=<endpoint>   # optional, default: https://api.openai.com/v1
+OPENAI_MODEL=<model-id>      # optional, default: gpt-4o
+```
+
+**Smoke test:** Skipped — no local Ollama available and no OPENAI_API_KEY configured in this environment. The adapter compiles cleanly with 0 TypeScript errors in the new files. Integration test should be done manually with a real endpoint before production use.
+
+**Files added:**
+- `src/constants/openai.ts` — OPENAI_DEFAULT_BASE_URL, OPENAI_DEFAULT_MODEL
+- `src/services/api/openai-fetch-adapter.ts` — Chat Completions → Anthropic SSE translation
+- `src/services/api/client.ts` — +2 imports, +1 provider branch (16 lines)
