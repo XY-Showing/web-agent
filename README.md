@@ -1,84 +1,162 @@
-<p align="center">
-  <img src="assets/screenshot.png" alt="web-agent" width="720" />
-</p>
+<div align="center">
 
-<h1 align="center">web-agent</h1>
+# web-agent
 
-<p align="center">
-  <strong>The free build of Claude Code.</strong><br>
-  All telemetry stripped. All guardrails removed. All experimental features unlocked.<br>
-  One binary, zero callbacks home.
-</p>
+**TypeScript library for building AI agent applications**
 
-<p align="center">
-  <a href="#quick-install"><img src="https://img.shields.io/badge/install-one--liner-blue?style=flat-square" alt="Install" /></a>
-  <a href="FEATURES.md"><img src="https://img.shields.io/badge/features-88%20flags-orange?style=flat-square" alt="Feature Flags" /></a>
-</p>
+[![Version](https://img.shields.io/badge/version-1.0-blue?style=flat-square)](https://github.com/XY-Showing/web-agent)
+[![Bun](https://img.shields.io/badge/bun-%3E%3D1.3.11-f9f1e1?style=flat-square&logo=bun)](https://bun.sh)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org)
+[![License](https://img.shields.io/badge/license-MIT-green?style=flat-square)](LICENSE)
+
+Build your own ChatGPT interface, coding assistant, autonomous agent, or multi-agent system — without starting from scratch.
+
+[What You Can Build](#what-you-can-build) · [Core Capabilities](#core-capabilities) · [Model Providers](#model-providers) · [Get Started](#install)
+
+</div>
 
 ---
 
-## Quick Install
+## What You Can Build
 
-```bash
-# See install.sh for local installation instructions
-bash install.sh
+| | |
+|---|---|
+| **Chat interfaces** | Stream multi-turn conversations with tool use, exactly like ChatGPT or Claude.ai |
+| **Coding assistants** | Agents that read, write, and edit files, run shell commands, search codebases |
+| **Autonomous agents** | Long-running agents that take actions, make decisions, and loop until a goal is reached |
+| **Multi-agent systems** | Orchestrate parallel sub-agents, delegate tasks, collect results |
+| **MCP-powered apps** | Connect to any MCP server and expose its tools to your agent |
+| **Custom tool platforms** | Define your own tools with typed schemas; the query engine handles the rest |
+
+---
+
+## Core Capabilities
+
+### Query Engine
+
+The agent loop that powers everything. Send a message, get back a result — the engine handles all the complexity in between.
+
+```ts
+import { QueryEngine } from './src/QueryEngine'
 ```
 
-Checks your system, installs Bun if needed, clones the repo, builds with all experimental features enabled, and symlinks `free-code` on your PATH.
-
-Then run `free-code` and use the `/login` command to authenticate with your preferred model provider.
-
----
-
-## Table of Contents
-
-- [What is this](#what-is-this)
-- [Model Providers](#model-providers)
-- [Quick Install](#quick-install)
-- [Requirements](#requirements)
-- [Build](#build)
-- [Usage](#usage)
-- [Experimental Features](#experimental-features)
-- [Project Structure](#project-structure)
-- [Tech Stack](#tech-stack)
-- [Contributing](#contributing)
-- [License](#license)
+- Streams tokens from the LLM in real time
+- Detects tool calls in the response and executes them automatically
+- Feeds tool results back to the model and continues the loop
+- Manages context window — compacts when approaching limits
+- Supports multi-turn conversation history
+- Works with all supported model providers transparently
 
 ---
 
-## What is this
+### Tool System — 40+ built-in tools
 
-A clean, buildable fork of Anthropic's [Claude Code](https://docs.anthropic.com/en/docs/claude-code) CLI -- the terminal-native AI coding agent. The upstream source became publicly available on March 31, 2026 through a source map exposure in the npm distribution.
+Every tool has a typed Zod schema for input validation and a clean async handler. Extend `Tool` to define your own.
 
-This fork applies three categories of changes on top of that snapshot:
+```ts
+import { Tool } from './src/Tool'
+```
 
-### Telemetry removed
+**File & Code**
 
-The upstream binary phones home through OpenTelemetry/gRPC, GrowthBook analytics, Sentry error reporting, and custom event logging. In this build:
+| Tool | Description |
+|---|---|
+| `FileReadTool` | Read files with line ranges |
+| `FileEditTool` | Precise string replacement in files |
+| `FileWriteTool` | Create or overwrite files |
+| `GlobTool` | Find files by pattern (`**/*.ts`) |
+| `GrepTool` | Search file contents with regex (ripgrep-backed) |
+| `LSPTool` | Go-to-definition, find references via LSP |
 
-- All outbound telemetry endpoints are dead-code-eliminated or stubbed
-- GrowthBook feature flag evaluation still works locally (needed for runtime feature gates) but does not report back
-- No crash reports, no usage analytics, no session fingerprinting
+**Execution**
 
-### Security-prompt guardrails removed
+| Tool | Description |
+|---|---|
+| `BashTool` | Run shell commands, capture stdout/stderr |
+| `REPLTool` | Persistent REPL session across calls |
 
-Anthropic injects system-level instructions into every conversation that constrain Claude's behavior beyond what the model itself enforces. These include hardcoded refusal patterns, injected "cyber risk" instruction blocks, and managed-settings security overlays pushed from Anthropic's servers.
+**Web**
 
-This build strips those injections. The model's own safety training still applies -- this just removes the extra layer of prompt-level restrictions that the CLI wraps around it.
+| Tool | Description |
+|---|---|
+| `WebFetchTool` | Fetch any URL, returns clean text |
+| `WebSearchTool` | Web search with structured results |
 
-### Experimental features unlocked
+**Agent Orchestration**
 
-Claude Code ships with 88 feature flags gated behind `bun:bundle` compile-time switches. Most are disabled in the public npm release. This build unlocks all 54 flags that compile cleanly. See [Experimental Features](#experimental-features) below, or refer to [FEATURES.md](FEATURES.md) for the full audit.
+| Tool | Description |
+|---|---|
+| `AgentTool` | Spawn a sub-agent with its own context and tools |
+| `SendMessageTool` | Send messages to running agent instances |
+| `TaskCreateTool` | Create background tasks |
+| `TaskListTool` | List and monitor running tasks |
+| `TaskOutputTool` | Stream output from a running task |
+| `TaskStopTool` | Stop a task by ID |
+| `RemoteTriggerTool` | Trigger remote agents or webhooks |
+| `ScheduleCronTool` | Schedule recurring tasks |
+
+**Infrastructure**
+
+| Tool | Description |
+|---|---|
+| `MCPTool` | Call any tool exposed by an MCP server |
+| `ToolSearchTool` | Search available tools by description |
+| `SkillTool` | Invoke reusable skill prompts |
+| `TodoWriteTool` | Write structured todo lists for progress tracking |
+| `NotebookEditTool` | Edit Jupyter notebooks |
+
+---
+
+### Command System — 70+ slash commands
+
+Pre-built slash command implementations covering memory, sessions, MCP servers, model switching, permissions, plans, and more. Wire them to your own UI or use them headlessly.
+
+---
+
+### Services
+
+| Service | Description |
+|---|---|
+| `services/api` | API client with retry, streaming, multi-provider routing |
+| `services/oauth` | OAuth flows for Anthropic and OpenAI |
+| `services/mcp` | Full MCP client — connect, list tools, call tools |
+| `services/lsp` | LSP client for code intelligence |
+| `services/compact` | Context compaction — summarize history when context fills up |
+| `services/SessionMemory` | Persist and restore conversation memory across sessions |
+| `services/extractMemories` | Auto-extract key facts from conversations |
+| `services/AgentSummary` | Summarize agent runs for audit and logging |
+| `services/plugins` | Plugin lifecycle management |
+
+---
+
+### State, Skills & Plugins
+
+- **State** — Centralized store for sessions, model config, permissions, and tool history. Built for React but usable headlessly.
+- **Skills** — Reusable prompt templates that agents can invoke by name.
+- **Plugins** — Extend the agent with new tools, commands, and behaviors at runtime.
 
 ---
 
 ## Model Providers
 
-free-code supports **five API providers** out of the box. Set the corresponding environment variable to switch providers -- no code changes needed.
+Switch providers via environment variables — no code changes needed.
 
-### Anthropic (Direct API) -- Default
+| Provider | Env Variable | Auth |
+|---|---|---|
+| Anthropic (default) | — | `ANTHROPIC_API_KEY` or OAuth |
+| AWS Bedrock | `CLAUDE_CODE_USE_BEDROCK=1` | AWS credentials |
+| Google Vertex AI | `CLAUDE_CODE_USE_VERTEX=1` | `gcloud` ADC |
+| Anthropic Foundry | `CLAUDE_CODE_USE_FOUNDRY=1` | `ANTHROPIC_FOUNDRY_API_KEY` |
+| OpenAI / compatible | `CLAUDE_CODE_USE_OPENAI=1` | `OPENAI_API_KEY` |
 
-Use Anthropic's first-party API directly.
+<details>
+<summary>Supported models and environment variables</summary>
+
+#### Anthropic
+
+```bash
+export ANTHROPIC_API_KEY="sk-..."
+```
 
 | Model | ID |
 |---|---|
@@ -86,257 +164,135 @@ Use Anthropic's first-party API directly.
 | Claude Sonnet 4.6 | `claude-sonnet-4-6` |
 | Claude Haiku 4.5 | `claude-haiku-4-5` |
 
-### OpenAI Codex
-
-Use OpenAI's Codex models for code generation. Requires a Codex subscription.
-
-| Model | ID |
-|---|---|
-| GPT-5.3 Codex (recommended) | `gpt-5.3-codex` |
-| GPT-5.4 | `gpt-5.4` |
-| GPT-5.4 Mini | `gpt-5.4-mini` |
-
-```bash
-export CLAUDE_CODE_USE_OPENAI=1
-free-code
-```
-
-### AWS Bedrock
-
-Route requests through your AWS account via Amazon Bedrock.
+#### AWS Bedrock
 
 ```bash
 export CLAUDE_CODE_USE_BEDROCK=1
-export AWS_REGION="us-east-1"   # or AWS_DEFAULT_REGION
-free-code
+export AWS_REGION="us-east-1"
 ```
 
-Uses your standard AWS credentials (environment variables, `~/.aws/config`, or IAM role). Models are mapped to Bedrock ARN format automatically (e.g., `us.anthropic.claude-opus-4-6-v1`).
-
-| Variable | Purpose |
-|---|---|
-| `CLAUDE_CODE_USE_BEDROCK` | Enable Bedrock provider |
-| `AWS_REGION` / `AWS_DEFAULT_REGION` | AWS region (default: `us-east-1`) |
-| `ANTHROPIC_BEDROCK_BASE_URL` | Custom Bedrock endpoint |
-| `AWS_BEARER_TOKEN_BEDROCK` | Bearer token auth |
-| `CLAUDE_CODE_SKIP_BEDROCK_AUTH` | Skip auth (testing) |
-
-### Google Cloud Vertex AI
-
-Route requests through your GCP project via Vertex AI.
+#### Google Vertex AI
 
 ```bash
 export CLAUDE_CODE_USE_VERTEX=1
-free-code
+# gcloud auth application-default login
 ```
 
-Uses Google Cloud Application Default Credentials (`gcloud auth application-default login`). Models are mapped to Vertex format automatically (e.g., `claude-opus-4-6@latest`).
-
-### Anthropic Foundry
-
-Use Anthropic Foundry for dedicated deployments.
+#### Anthropic Foundry
 
 ```bash
 export CLAUDE_CODE_USE_FOUNDRY=1
 export ANTHROPIC_FOUNDRY_API_KEY="..."
-free-code
 ```
 
-Supports custom deployment IDs as model names.
-
-### Provider Selection Summary
-
-| Provider | Env Variable | Auth Method |
-|---|---|---|
-| Anthropic (default) | -- | `ANTHROPIC_API_KEY` or OAuth |
-| OpenAI Codex | `CLAUDE_CODE_USE_OPENAI=1` | OAuth via OpenAI |
-| AWS Bedrock | `CLAUDE_CODE_USE_BEDROCK=1` | AWS credentials |
-| Google Vertex AI | `CLAUDE_CODE_USE_VERTEX=1` | `gcloud` ADC |
-| Anthropic Foundry | `CLAUDE_CODE_USE_FOUNDRY=1` | `ANTHROPIC_FOUNDRY_API_KEY` |
-
----
-
-## Requirements
-
-- **Runtime**: [Bun](https://bun.sh) >= 1.3.11
-- **OS**: macOS or Linux (Windows via WSL)
-- **Auth**: An API key or OAuth login for your chosen provider
+#### OpenAI and Compatible Providers
 
 ```bash
-# Install Bun if you don't have it
-curl -fsSL https://bun.sh/install | bash
+# OpenAI
+export CLAUDE_CODE_USE_OPENAI=1
+export OPENAI_API_KEY="sk-..."
+export OPENAI_MODEL="gpt-4o"          # optional, default: gpt-4o
+
+# Moonshot / Kimi
+export CLAUDE_CODE_USE_OPENAI=1
+export OPENAI_API_KEY="sk-..."
+export OPENAI_BASE_URL="https://api.moonshot.cn/v1"
+export OPENAI_MODEL="moonshot-v1-8k"
+
+# Qwen
+export CLAUDE_CODE_USE_OPENAI=1
+export OPENAI_API_KEY="sk-..."
+export OPENAI_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1"
+export OPENAI_MODEL="qwen-max"
+
+# Ollama (local)
+export CLAUDE_CODE_USE_OPENAI=1
+export OPENAI_API_KEY="ollama"
+export OPENAI_BASE_URL="http://localhost:11434/v1"
+export OPENAI_MODEL="llama3"
 ```
 
----
+| Variable | Purpose |
+|---|---|
+| `CLAUDE_CODE_USE_OPENAI` | Enable OpenAI-compatible provider (set to `1`) |
+| `OPENAI_API_KEY` | API key (use any string for local models) |
+| `OPENAI_BASE_URL` | Endpoint base URL (default: `https://api.openai.com/v1`) |
+| `OPENAI_MODEL` | Model ID (default: `gpt-4o`) |
 
-## Build
-
-```bash
-git clone <repo-url>
-cd web-agent
-bun build
-./cli
-```
-
-### Build Variants
-
-| Command | Output | Features | Description |
-|---|---|---|---|
-| `bun run build` | `./cli` | `VOICE_MODE` only | Production-like binary |
-| `bun run build:dev` | `./cli-dev` | `VOICE_MODE` only | Dev version stamp |
-| `bun run build:dev:full` | `./cli-dev` | All 54 experimental flags | Full unlock build |
-| `bun run compile` | `./dist/cli` | `VOICE_MODE` only | Alternative output path |
-
-### Custom Feature Flags
-
-Enable specific flags without the full bundle:
-
-```bash
-# Enable just ultraplan and ultrathink
-bun run ./scripts/build.ts --feature=ULTRAPLAN --feature=ULTRATHINK
-
-# Add a flag on top of the dev build
-bun run ./scripts/build.ts --dev --feature=BRIDGE_MODE
-```
-
----
-
-## Usage
-
-```bash
-# Interactive REPL (default)
-./cli
-
-# One-shot mode
-./cli -p "what files are in this directory?"
-
-# Specify a model
-./cli --model claude-opus-4-6
-
-# Run from source (slower startup)
-bun run dev
-
-# OAuth login
-./cli /login
-```
-
-### Environment Variables Reference
+#### Environment Variables Reference
 
 | Variable | Purpose |
 |---|---|
 | `ANTHROPIC_API_KEY` | Anthropic API key |
-| `ANTHROPIC_AUTH_TOKEN` | Auth token (alternative) |
 | `ANTHROPIC_MODEL` | Override default model |
 | `ANTHROPIC_BASE_URL` | Custom API endpoint |
 | `ANTHROPIC_DEFAULT_OPUS_MODEL` | Custom Opus model ID |
 | `ANTHROPIC_DEFAULT_SONNET_MODEL` | Custom Sonnet model ID |
 | `ANTHROPIC_DEFAULT_HAIKU_MODEL` | Custom Haiku model ID |
-| `CLAUDE_CODE_OAUTH_TOKEN` | OAuth token via env |
-| `CLAUDE_CODE_API_KEY_HELPER_TTL_MS` | API key helper cache TTL |
+
+</details>
 
 ---
 
-## Experimental Features
+## Install
 
-The `bun run build:dev:full` build enables all 54 working feature flags. Highlights:
+```bash
+git clone https://github.com/XY-Showing/web-agent
+cd web-agent
+bun install
+```
 
-### Interaction & UI
+**Requirements:** [Bun](https://bun.sh) >= 1.3.11
 
-| Flag | Description |
-|---|---|
-| `ULTRAPLAN` | Remote multi-agent planning on Claude Code web (Opus-class) |
-| `ULTRATHINK` | Deep thinking mode -- type "ultrathink" to boost reasoning effort |
-| `VOICE_MODE` | Push-to-talk voice input and dictation |
-| `TOKEN_BUDGET` | Token budget tracking and usage warnings |
-| `HISTORY_PICKER` | Interactive prompt history picker |
-| `MESSAGE_ACTIONS` | Message action entrypoints in the UI |
-| `QUICK_SEARCH` | Prompt quick-search |
-| `SHOT_STATS` | Shot-distribution stats |
-
-### Agents, Memory & Planning
-
-| Flag | Description |
-|---|---|
-| `BUILTIN_EXPLORE_PLAN_AGENTS` | Built-in explore/plan agent presets |
-| `VERIFICATION_AGENT` | Verification agent for task validation |
-| `AGENT_TRIGGERS` | Local cron/trigger tools for background automation |
-| `AGENT_TRIGGERS_REMOTE` | Remote trigger tool path |
-| `EXTRACT_MEMORIES` | Post-query automatic memory extraction |
-| `COMPACTION_REMINDERS` | Smart reminders around context compaction |
-| `CACHED_MICROCOMPACT` | Cached microcompact state through query flows |
-| `TEAMMEM` | Team-memory files and watcher hooks |
-
-### Tools & Infrastructure
-
-| Flag | Description |
-|---|---|
-| `BRIDGE_MODE` | IDE remote-control bridge (VS Code, JetBrains) |
-| `BASH_CLASSIFIER` | Classifier-assisted bash permission decisions |
-| `PROMPT_CACHE_BREAK_DETECTION` | Cache-break detection in compaction/query flow |
-
-See [FEATURES.md](FEATURES.md) for the complete audit of all 88 flags, including 34 broken flags with reconstruction notes.
+```bash
+# Install Bun
+curl -fsSL https://bun.sh/install | bash
+```
 
 ---
 
 ## Project Structure
 
 ```
-scripts/
-  build.ts                # Build script with feature flag system
-
 src/
-  entrypoints/cli.tsx     # CLI entrypoint
-  commands.ts             # Command registry (slash commands)
-  tools.ts                # Tool registry (agent tools)
-  QueryEngine.ts          # LLM query engine
-  screens/REPL.tsx        # Main interactive UI (Ink/React)
+  QueryEngine.ts          # LLM query engine — message loop, tool dispatch, streaming
+  Tool.ts                 # Tool base class and schema system
+  Task.ts                 # Task definition and lifecycle
 
-  commands/               # /slash command implementations
-  tools/                  # Agent tool implementations (Bash, Read, Edit, etc.)
-  components/             # Ink/React terminal UI components
-  hooks/                  # React hooks
-  services/               # API clients, MCP, OAuth, analytics
-    api/                  # API client + Codex fetch adapter
-    oauth/                # OAuth flows (Anthropic + OpenAI)
+  tools/                  # 40+ built-in tool implementations
+  commands/               # 70+ slash command implementations
+  services/               # API, OAuth, MCP, LSP, compaction, memory, plugins
   state/                  # App state store
-  utils/                  # Utilities
-    model/                # Model configs, providers, validation
+  hooks/                  # React hooks for UI integration
   skills/                 # Skill system
   plugins/                # Plugin system
-  bridge/                 # IDE bridge
-  voice/                  # Voice input
   tasks/                  # Background task management
+  utils/                  # Git, shell, permissions, settings, security, ...
+  types/                  # TypeScript type definitions
+  constants/              # Configuration constants
+  schemas/                # Zod schemas
+  migrations/             # State migrations
 ```
 
 ---
 
 ## Tech Stack
 
-| | |
-|---|---|
-| **Runtime** | [Bun](https://bun.sh) |
-| **Language** | TypeScript |
-| **Terminal UI** | React + [Ink](https://github.com/vadimdemedes/ink) |
-| **CLI Parsing** | [Commander.js](https://github.com/tj/commander.js) |
-| **Schema Validation** | Zod v4 |
-| **Code Search** | ripgrep (bundled) |
-| **Protocols** | MCP, LSP |
-| **APIs** | Anthropic Messages, OpenAI Codex, AWS Bedrock, Google Vertex AI |
+[![Bun](https://img.shields.io/badge/Runtime-Bun-f9f1e1?style=flat-square&logo=bun)](https://bun.sh)
+[![TypeScript](https://img.shields.io/badge/Language-TypeScript-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org)
+[![Zod](https://img.shields.io/badge/Validation-Zod_v4-3E67B1?style=flat-square)](https://zod.dev)
+[![MCP](https://img.shields.io/badge/Protocol-MCP-gray?style=flat-square)](https://modelcontextprotocol.io)
 
 ---
 
-## Contributing
+## Type Check
 
-Contributions are welcome. If you're working on restoring one of the 34 broken feature flags, check the reconstruction notes in [FEATURES.md](FEATURES.md) first -- many are close to compiling and just need a small wrapper or missing asset.
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feat/my-feature`)
-3. Commit your changes (`git commit -m 'feat: add something'`)
-4. Push to the branch (`git push origin feat/my-feature`)
-5. Open a Pull Request
+```bash
+bun run tsc --noEmit
+```
 
 ---
 
 ## License
 
-The original Claude Code source is the property of Anthropic. This fork exists because the source was publicly exposed through their npm distribution. Use at your own discretion.
+MIT
