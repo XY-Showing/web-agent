@@ -36,6 +36,8 @@ import {
   isEnvTruthy,
 } from '../../utils/envUtils.js'
 import { createCodexFetch } from './codex-fetch-adapter.js'
+import { createOpenAIFetch } from './openai-fetch-adapter.js'
+import { OPENAI_DEFAULT_BASE_URL, OPENAI_DEFAULT_MODEL } from '../../constants/openai.js'
 
 /**
  * Environment variables for different client types:
@@ -318,6 +320,20 @@ export async function getAnthropicClient({
       }
       return new Anthropic(clientConfig)
     }
+  }
+
+  // ── Generic OpenAI-compatible provider ──────────────────────────────
+  if (isEnvTruthy(process.env.CLAUDE_CODE_USE_OPENAI)) {
+    const openaiApiKey = process.env.OPENAI_API_KEY || ''
+    const openaiBaseURL = process.env.OPENAI_BASE_URL || OPENAI_DEFAULT_BASE_URL
+    const openaiModel = process.env.OPENAI_MODEL || OPENAI_DEFAULT_MODEL
+    const openAIFetch = createOpenAIFetch(openaiApiKey, openaiBaseURL, openaiModel)
+    return new Anthropic({
+      apiKey: 'openai-placeholder',
+      ...ARGS,
+      fetch: openAIFetch as unknown as typeof globalThis.fetch,
+      ...(isDebugToStdErr() && { logger: createStderrLogger() }),
+    })
   }
 
   // Determine authentication method based on available tokens
